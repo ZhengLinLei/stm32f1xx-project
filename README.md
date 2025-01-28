@@ -16,5 +16,10 @@ This is a template project for STM32F1 microcontrollers. Create new projects wit
 ## How to flash?
 
 1. Install [stlink](https://github.com/stlink-org/stlink) tool.
-2. Run `FLASH.sh` script.
+2. Run `FLASH.sh` script. But before specify flashing tool inside the script.
+
+
+## Help?
+
+Both script have help option. Run `BUILD.sh -h` or `FLASH.sh -h` for more information.
 

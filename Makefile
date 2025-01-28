@@ -15,6 +15,8 @@ SIZE    = arm-none-eabi-size
 CPU	 = cortex-m3
 MCU	 = stm32f103xb
 DMCU =  $(shell echo $(MCU) | sed 's/x/PLACEHOLDER/g' | tr '[:lower:]' '[:upper:]' | sed 's/PLACEHOLDER/x/g')
+FLASH = uart
+USB   = /dev/ttyUSB0
 
 # Project structure
 SRCDIR			= source
@@ -32,7 +34,7 @@ HAL_INC			= $(HAL_DIR)/include
 
 # Linker script
 LDDIR		= $(CMSIS_DIR)/linker
-LDSCRIPT	= $(LDDIR)/$(MCU)_FLASH.ld
+LDSCRIPT	= $(LDDIR)/$(MCU)_flash.ld
 
 # Core sources
 HAL_OBJ_SRC			= $(wildcard $(HAL_SRC)/*.c)
@@ -60,7 +62,7 @@ RM	= rm -rf
 
 # Targets
 
-all:: $(BINDIR)/$(PROJECT).bin $(BINDIR)/$(PROJECT).hex 
+all:: $(SRCDIR)/startup_$(MCU).s $(BINDIR)/$(PROJECT).bin $(BINDIR)/$(PROJECT).hex 
 
 $(BINDIR)/$(PROJECT).bin: $(BINDIR)/$(PROJECT).elf
 	$(OBJCOPY) -R .stack --strip-unneeded -O binary $< $@
@@ -93,7 +95,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
 # Move target MCU startup to project directory
-$(SRCDIR)/%.s:
+$(SRCDIR)/startup_$(MCU).s:
 	@echo "Getting asm source for MCU $(MCU)"
 	@cp $(CMSIS_DEV_SRC)/startup_$(MCU).s $@
 
@@ -104,7 +106,16 @@ clean:
 
 cleanall:
 	@rm -rf $(OBJDIR)/*
+	@rm -f  $(BINDIR)/*
 	@rm -f  $(HAL_LOCAL_LIB_OBJS)
+	@rm -f  $(SRCDIR)/startup_$(MCU).s
 
+# If $(FLASH) is set to uart, use st32flash to flash the target
 flash: $(BINDIR)/$(PROJECT).bin
-	@st-flash write $(BINDIR)/$(PROJECT).bin 0x08000000
+ifeq ($(FLASH), uart)
+	@echo "UART Bootloader protocol selected. Using stm32flash."
+	@stm32flash -w $(BINDIR)/$(PROJECT).bin 0x08000000 -v -g 0x0 $(USB)
+else
+	@echo "SWD Bootloader protocol selected. Using st-flash."
+	@st-flash --reset write $(BINDIR)/$(PROJECT).bin 0x08000000
+endif
