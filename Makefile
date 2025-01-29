@@ -114,7 +114,7 @@ cleanall:
 flash: $(BINDIR)/$(PROJECT).bin
 ifeq ($(FLASH), uart)
 	@echo "UART Bootloader protocol selected. Using stm32flash."
-	@stm32flash -w $(BINDIR)/$(PROJECT).bin 0x08000000 -v -g 0x0 $(USB)
+	@stm32flash -w $(BINDIR)/$(PROJECT).bin -v -g 0x08000000 $(USB)
 else
 	@echo "SWD Bootloader protocol selected. Using st-flash."
 	@st-flash --reset write $(BINDIR)/$(PROJECT).bin 0x08000000
