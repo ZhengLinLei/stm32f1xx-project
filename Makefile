@@ -18,6 +18,9 @@ DMCU =  $(shell echo $(MCU) | sed 's/x/PLACEHOLDER/g' | tr '[:lower:]' '[:upper:
 FLASH = uart
 USB   = /dev/ttyUSB0
 
+# Lower to prevent errors
+RATE  = 9600
+
 # Project structure
 SRCDIR			= source
 INCDIR			= include
@@ -114,8 +117,21 @@ cleanall:
 flash: $(BINDIR)/$(PROJECT).bin
 ifeq ($(FLASH), uart)
 	@echo "UART Bootloader protocol selected. Using stm32flash."
-	@stm32flash -w $(BINDIR)/$(PROJECT).bin -v -g 0x08000000 $(USB)
-else
+	@stm32flash -b $(RATE) -w $(BINDIR)/$(PROJECT).bin -v -g 0x08000000 $(USB)
+
+# else if $(FLASH) is set to swd, use st-flash to flash the target
+else ifeq ($(FLASH), swd)
 	@echo "SWD Bootloader protocol selected. Using st-flash."
 	@st-flash --reset write $(BINDIR)/$(PROJECT).bin 0x08000000
+
+else ifeq ($(FLASH), usb)
+	@echo "USB Bootloader protocol selected. Using dfu-util."
+	@dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D $(BINDIR)/$(PROJECT).bin
+
+# else use STM32CubeProgrammer to flash the target
+else
+	@echo "Using generic flasher STM32CubeProgrammer"
+	@echo "Please make sure STM32CubeProgrammer is installed and in PATH"
+	@STM32_Programmer_CLI -c port=$(USB) --serial_baudrate=$(RATE) --serial_parity=even -w $(BINDIR)/$(PROJECT).bin 0x08000000 --verify -g 0x08000000
+
 endif
